@@ -1,0 +1,59 @@
+# This is a Home Assistant template to create a vacuum entity for the ESPHome device, for use with components such as the Mushroom Vacuum card.
+- sensor:
+    - name: Neato Vacuum ESP Battery
+      unique_id: neato_vacuum_esp_battery
+      device_class: battery
+      unit_of_measurement: "%"
+      state: "{{ states('sensor.neato_vacuum_fuel_percent') | int }}"
+- binary_sensor:
+    - name: Neato Vacuum ESP Charging
+      unique_id: neato_vacuum_esp_charging
+      device_class: battery_charging
+      state: "{{ states('binary_sensor.neato_vacuum_charging_active') }}"
+- vacuum:
+    - name: Neato Vacuum ESP
+      unique_id: neato_vacuum_esp
+      state: >-
+        {% if states('sensor.neato_vacuum_ui_state') == "UIMGR_STATE_STANDBY" %}
+        docked
+        {% elif states('sensor.neato_vacuum_ui_state') == "UIMGR_STATE_STARTHOUSECLEANING" 
+             or states('sensor.neato_vacuum_ui_state') == "UIMGR_STATE_STARTSPOTCLEANING"
+             or states('sensor.neato_vacuum_ui_state') == "UIMGR_STATE_HOUSECLEANINGRUNNING" 
+             or states('sensor.neato_vacuum_ui_state') == "URMGR_STATE_SPOTCLEANINGRUNNING"
+             or states('sensor.neato_vacuum_ui_state') == "Starting..." %}
+        cleaning
+        {% elif states('sensor.neato_vacuum_ui_state') == "UIMGR_STATE_IDLETRANSITION"
+             or states('sensor.neato_vacuum_ui_state') == "UIMGR_STATE_IDLE" %}
+        idle
+        {% elif states('sensor.neato_vacuum_ui_state') == "UIMGR_STATE_HOUSECLEANINGPAUSED"
+             or states('sensor.neato_vacuum_ui_state') == "URMGR_STATE_SPOTCLEANINGPAUSED" 
+             or states('sensor.neato_vacuum_ui_state') == "UIMGR_STATE_DOCKINGPAUSED" %}
+        paused
+        {% elif states('sensor.neato_vacuum_ui_state') == "UIMGR_STATE_DOCKINGRUNNING" 
+             or states('sensor.neato_vacuum_ui_state') == "Shutting down..." %}
+        returning
+        {% else %}
+        error
+        {% endif %}
+      attributes:
+        error: "{{ states('sensor.neato_vacuum_robot_error') }}"
+      start:
+        service: button.press
+        target:
+          entity_id: button.neato_vacuum_house_clean
+      pause:
+        service: button.press
+        target:
+          entity_id: button.neato_vacuum_pause_cleaning
+      stop:
+        service: button.press
+        target:
+          entity_id: button.neato_vacuum_stop_cleaning
+      clean_spot:
+        service: button.press
+        target:
+          entity_id: button.neato_vacuum_spot_clean
+      locate:
+        service: button.press
+        target:
+          entity_id: button.neato_vacuum_locate_robot
